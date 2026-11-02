@@ -1,0 +1,28 @@
+name: docker-poc
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"           # Your laptop port 8080 -> container port 80. Expose port 80 of the container to port 8080 on the host machine
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    environment:
+      GREETING: "Hello from the backend container!"
+      REDIS_HOST: "redis"
+    ports:
+      - "5050:5000"         # Optional: lets you call the API directly from your laptop
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine   # ready-made Redis image from Docker Hub, nothing to build
+    # No "ports" here on purpose: only other containers can reach it, and we don't need to call Redis from our laptop, only from the backend container
+    volumes:
+      - redis-data:/data    # Keeps the counter even if the container is stopped and removed
+
+volumes:
+  redis-data:

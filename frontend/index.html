@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Docker POC</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin-top: 50px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+      pre {
+        background-color: #f4f4f4;
+        padding: 10px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Docker POC</h1>
+    <p>
+      This page runs in one container. The button calls the backend, which runs
+      in another container and stores a counter in a third container (Redis).
+    </p>
+    <button id="btn">Call backend</button>
+    <pre id="out">Click the button...</pre>
+    <script>
+      document.getElementById("btn").addEventListener("click", async () => {
+        const out = document.getElementById("out");
+        try {
+          const res = await fetch("/api/hello");
+          out.textContent = JSON.stringify(await res.json(), null, 2);
+        } catch (err) {
+          out.textContent = "Backend not reachable: " + err;
+        }
+      });
+    </script>
+  </body>
+</html>
