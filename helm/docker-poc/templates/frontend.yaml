@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          # The image tag is required, stop with this error if the value is missing.
+          # Use the default tag "1.0" if the value is empty.
+          image: '{{ .Values.frontend.image }}:{{ required "image tag is required" .Values.frontend.tag | default "1.0" }}'
+          imagePullPolicy: {{ .Values.frontend.pullPolicy }}
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 5
+          resources:
+            # Turn a whole block into YAML and indent it to the right level.
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+---
+# LoadBalancer = "reachable from outside the cluster". Docker Desktop maps it to localhost.
+# port 8080 = what you open in the browser, targetPort 80 = where nginx listens in the pod.
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - port: {{ .Values.frontend.servicePort }}
+      targetPort: 80

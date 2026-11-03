@@ -1,0 +1,5 @@
+Installed "{{ .Release.Name }}" into namespace "{{ .Release.Namespace }}" (revision {{ .Release.Revision }}).
+
+Open:              http://localhost:{{ .Values.frontend.servicePort }}
+Backend copies:    {{ .Values.backend.replicas }}
+Watch pods:        kubectl get pods -n {{ .Release.Namespace }} -w

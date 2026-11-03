@@ -18,6 +18,7 @@ A small Docker Compose project for learning how a web frontend, API, and datasto
 - `backend/` — Flask API service
 - `docker-compose.yml` — service configuration, ports, Redis health check, and data volume
 - `k8s/` — Kubernetes namespace, Redis, backend, and frontend resources
+- `helm/docker-poc/` — Helm chart, default values, and an example production override
 
 ## How it works
 
@@ -99,6 +100,53 @@ When finished, remove the Kubernetes resources with `kubectl delete namespace do
 
 To return to Compose, start it again with `docker compose up --build`.
 
+## Run the full stack with Helm
+
+The Helm chart packages the same Redis, backend, and frontend resources as the Kubernetes manifests. It defaults to the locally built `docker-poc-backend:1.0` and `docker-poc-frontend:1.0` images with `imagePullPolicy: Never`, so build those images in Docker Desktop before installing. The Redis image is pulled from its configured registry.
+
+With Docker Desktop Kubernetes enabled, select the `docker-desktop` context, stop any Compose stack using port 8080, and build the application images:
+
+```bash
+docker compose down
+docker build -t docker-poc-backend:1.0 ./backend
+docker build -t docker-poc-frontend:1.0 ./frontend
+helm lint ./helm/docker-poc
+helm template docker-poc ./helm/docker-poc --namespace docker-poc
+helm upgrade --install docker-poc ./helm/docker-poc \
+  --namespace docker-poc \
+  --create-namespace
+kubectl get pods,services,pvc -n docker-poc
+```
+
+Wait for the pods to become ready, then open http://localhost:8080. Helm prints the release notes after installation; you can also retrieve them with `helm get notes docker-poc -n docker-poc`.
+
+The chart defaults are in `helm/docker-poc/values.yaml`. Override individual values with `--set`, or place overrides in a YAML file and pass it with `-f`:
+
+```bash
+helm upgrade --install docker-poc ./helm/docker-poc \
+  --namespace docker-poc \
+  --set backend.replicas=3
+```
+
+`helm/docker-poc/values-prod.yaml` shows an example of overriding replica counts, image names and tags, pull policies, the backend greeting, and resources. Its registry image names are examples and are not published by this project. Preview the merged production configuration without installing it:
+
+```bash
+helm lint ./helm/docker-poc -f ./helm/docker-poc/values-prod.yaml
+helm template docker-poc ./helm/docker-poc \
+  --namespace docker-poc \
+  -f ./helm/docker-poc/values-prod.yaml
+```
+
+To remove the Helm release and its resources, including the Redis PersistentVolumeClaim, run:
+
+```bash
+helm uninstall docker-poc -n docker-poc
+```
+
+Whether the underlying storage is retained after the claim is deleted depends on the cluster's storage class.
+
+Do not install the raw Kubernetes manifests and the Helm release together in the same namespace: they create resources with the same names.
+
 ## Run only the backend container
 
 Build the backend image from its directory, then start a single container:
@@ -174,6 +222,16 @@ kubectl delete namespace docker-poc                    # Remove all project reso
 ```
 
 Kubernetes removes namespaced resources when the namespace is deleted. This also deletes the project's PersistentVolumeClaim; whether the underlying storage is retained depends on the cluster's storage class.
+
+### Helm
+
+```bash
+helm list -n docker-poc                                      # List Helm releases in the project namespace
+helm status docker-poc -n docker-poc                         # Show release status
+helm get values docker-poc -n docker-poc                     # Show release overrides
+helm upgrade --install docker-poc ./helm/docker-poc -n docker-poc # Apply chart changes
+helm uninstall docker-poc -n docker-poc                      # Remove the release and its resources
+```
 
 ### Common Docker options
 

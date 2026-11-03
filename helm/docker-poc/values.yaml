@@ -1,0 +1,29 @@
+# Default settings. Override any of them with -f <file> or --set key=value.
+
+redis:
+  image: redis
+  tag: 7-alpine
+  storage: 100Mi
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+backend:
+  replicas: 1
+  image: docker-poc-backend
+  tag: "1.0"
+  pullPolicy: Never # Use the image built on this laptop
+  greeting: "Hello from Helm Development!"
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 250m, memory: 128Mi }
+
+frontend:
+  replicas: 1
+  image: docker-poc-frontend
+  tag: "1.0"
+  pullPolicy: Never
+  servicePort: 8080 # The port you open in the browser
+  resources:
+    requests: { cpu: 25m, memory: 16Mi }
+    limits: { cpu: 200m, memory: 64Mi }
