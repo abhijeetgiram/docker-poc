@@ -128,7 +128,7 @@ helm upgrade --install docker-poc ./helm/docker-poc \
   --set backend.replicas=3
 ```
 
-The chart's `templates/_helpers.tpl` file defines reusable Helm template snippets. The backend Deployment uses its image helper to build the image name and required tag; the frontend image is set directly with a required image name and a default tag. Helper files are not rendered as Kubernetes resources on their own.
+The chart's `templates/_helpers.tpl` file defines reusable Helm template snippets. The backend Deployment uses its image helper to combine the image name and tag. Its environment variables come from the `backend.env` map in `values.yaml`; add or override entries there to configure the container. The frontend image is set directly with a required image name and a default tag. Helper files are not rendered as Kubernetes resources on their own.
 
 For the ingress example, `ingress.enabled` defaults to `false` (frontend Service type `LoadBalancer`). Set `--set ingress.enabled=true` to create a host-agnostic Ingress and use `ClusterIP`; an Ingress controller must be installed in the cluster.
 

@@ -8,7 +8,8 @@ backend:
   image: mycompany.azurecr.io/docker-poc-backend
   tag: "1.4.2"
   pullPolicy: IfNotPresent
-  greeting: "Hello from Helm Production!"
+  env:
+    GREETING: "Hello from Helm Production!"
   resources:
     requests: { cpu: 200m, memory: 128Mi }
     limits: { cpu: "1", memory: 256Mi }

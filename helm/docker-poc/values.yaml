@@ -13,7 +13,9 @@ backend:
   image: docker-poc-backend
   tag: "1.0"
   pullPolicy: Never # Use the image built on this laptop
-  greeting: "Hello from Helm Development!"
+  env:
+    GREETING: "Hello from Helm Development!"
+    REDIS_HOST: redis
   resources:
     requests: { cpu: 50m, memory: 64Mi }
     limits: { cpu: 250m, memory: 128Mi }

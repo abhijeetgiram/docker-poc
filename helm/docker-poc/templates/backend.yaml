@@ -18,10 +18,11 @@ spec:
           image: {{ include "docker-poc.backendImage" . | quote }}
           imagePullPolicy: {{ .Values.backend.pullPolicy }} # Use the image built on this laptop: never download it
           env:
-            - name: GREETING
-              value: {{ .Values.backend.greeting | quote }}
-            - name: REDIS_HOST
-              value: redis # The Service name from 10-redis.yaml
+            # Loop through the backend.env map in values.yaml to get all env vars for the backend container.
+            {{- range $name, $value := .Values.backend.env }}
+            - name: {{ $name }}
+              value: {{ $value | quote }}
+            {{- end }}
           ports:
             - containerPort: 5000
           readinessProbe: # Only send traffic once port 5000 accepts connections
