@@ -26,7 +26,7 @@ A small Docker Compose project for learning how a web frontend, API, and datasto
 4. Flask increments the `visits` key in Redis and returns JSON, including the backend container name.
 5. Redis stores its data in the `redis-data` volume so the counter survives container removal.
 
-Compose waits for Redis's health check before starting the backend. The frontend is served on port 80 inside its container and published as port 8080 on the host. The backend listens on port 5000 inside its container and is optionally published as port 5050. Redis has no host-published port.
+Compose waits for Redis's health check before starting the backend. The frontend is served on port 80 inside its container and published as port 8080 on the host. The backend listens on port 5000 inside its container and is reachable by other Compose services, but is not published on the host by default. This lets multiple backend replicas run without competing for one host port. Redis has no host-published port.
 
 ## Run the full stack
 
@@ -37,9 +37,11 @@ docker compose up --build
 Open:
 
 - Frontend: http://localhost:8080
-- Backend API: http://localhost:5050/api/hello
+- Backend API (through the frontend proxy): http://localhost:8080/api/hello
 
 Stop the foreground stack with `Ctrl+C`. To start it in the background, use `docker compose up --build -d`.
+
+To call the backend directly at `http://localhost:5050/api/hello`, uncomment the backend `ports` mapping in `docker-compose.yml` and restart Compose. A fixed host port supports only one backend replica; leave the mapping commented out when scaling.
 
 ## Run only the backend container
 
@@ -69,7 +71,7 @@ npm ci
 npm run dev
 ```
 
-The Vite proxy in `vite.config.js` forwards `/api` to `http://localhost:5000`. Make the Flask API available on that host port when using the Vite dev server. The Compose setup publishes the backend on port 5050 instead; the simplest way to test the complete stack is to use the Docker Compose instructions above.
+The Vite proxy in `vite.config.js` forwards `/api` to `http://localhost:5000`. Make the Flask API available on that host port when using the Vite dev server. The Compose setup does not publish the backend port by default; the simplest way to test the complete stack is to use the Docker Compose instructions above.
 
 ## Things to try with Docker and Docker Compose
 
@@ -87,14 +89,14 @@ docker compose down -v                         # Also remove the Redis volume an
 
 ### Try scaling the backend
 
-The backend service publishes host port 5050, and a fixed host port cannot be shared by multiple replicas. Temporarily remove or comment out the backend `ports` mapping in `docker-compose.yml`, then run:
+The backend is not published on a fixed host port, so Compose can start multiple replicas. The frontend proxy can still reach the backend using the Compose service name. Run:
 
 ```bash
 docker compose up --build -d --scale backend=3 # Start three backend replicas
 docker compose ps                              # Confirm the backend replicas are running
 ```
 
-This demonstrates starting replicas; it does not by itself guarantee that Nginx distributes requests across them.
+Open http://localhost:8080 and click the button (or visit http://localhost:8080/api/hello) to call the backend. The response includes the serving container's name, so you can make several requests to see which replica handles them. This demonstrates scaling; it does not guarantee even request distribution.
 
 ## POC milestones and roadmap
 

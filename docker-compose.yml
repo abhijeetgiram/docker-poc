@@ -13,8 +13,10 @@ services:
     environment:
       GREETING: "Hello from the backend container!"
       REDIS_HOST: "redis"
-    ports:
-      - "5050:5000" # Optional: lets you call the API directly from your laptop
+    # Uncomment for direct host access when running a single backend replica.
+    # A fixed host port cannot be shared by scaled replicas.
+    # ports:
+    #   - "5050:5000" # Optional: lets you call the API directly from your laptop
     depends_on:
       redis:
         condition: service_healthy # Wait for Redis answers, not just until it starts
