@@ -128,11 +128,17 @@ helm upgrade --install docker-poc ./helm/docker-poc \
   --set backend.replicas=3
 ```
 
-The chart's `templates/_helpers.tpl` file defines reusable Helm template snippets. The backend Deployment uses its image helper to combine the image name and tag. Its environment variables come from the `backend.env` map in `values.yaml`; add or override entries there to configure the container. The frontend image is set directly with a required image name and a default tag. Helper files are not rendered as Kubernetes resources on their own.
+The chart demonstrates a few Helm template features:
 
-For the ingress example, `ingress.enabled` defaults to `false` (frontend Service type `LoadBalancer`). Set `--set ingress.enabled=true` to create a host-agnostic Ingress and use `ClusterIP`; an Ingress controller must be installed in the cluster.
+- `templates/_helpers.tpl` defines a backend image helper that combines its image name and tag. Helper files are not rendered as Kubernetes resources on their own.
+- The backend Deployment uses `range` to turn the `backend.env` map in `values.yaml` into container environment variables.
+- The frontend Service uses `if` to select `LoadBalancer` by default or `ClusterIP` when `ingress.enabled` is true.
 
-`helm/docker-poc/values-prod.yaml` shows an example of overriding replica counts, image names and tags, pull policies, the backend greeting, and resources. Its registry image names are examples and are not published by this project. Preview the merged production configuration without installing it:
+Resource labels are currently written inline in the templates; there is not yet a shared labels helper.
+
+`ingress.enabled` defaults to `false`. Setting `--set ingress.enabled=true` changes the frontend Service to `ClusterIP`; it does not create an Ingress resource, so the frontend will only be reachable through a separately configured ingress or another cluster access method.
+
+`helm/docker-poc/values-prod.yaml` shows an example of overriding replica counts, image names and tags, pull policies, the backend environment, and resources. Its registry image names are examples and are not published by this project. Preview the merged production configuration without installing it:
 
 ```bash
 helm lint ./helm/docker-poc -f ./helm/docker-poc/values-prod.yaml
