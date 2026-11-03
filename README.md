@@ -7,7 +7,7 @@ A small Docker Compose project for learning how a web frontend, API, and datasto
 - **Frontend:** React 19 app built with Vite and served by Nginx.
 - **Backend:** Flask API that increments a visit counter.
 - **Datastore:** Redis, with its data stored in a named Docker volume.
-- **Orchestration:** Docker Compose starts the services on a shared network.
+- **Orchestration:** Docker Compose or Kubernetes runs the services with internal service discovery.
 
 ## Project structure
 
@@ -17,8 +17,43 @@ A small Docker Compose project for learning how a web frontend, API, and datasto
 - `frontend/nginx.conf` — serves the built app, supports SPA routes, and proxies API requests
 - `backend/` — Flask API service
 - `docker-compose.yml` — service configuration, ports, Redis health check, and data volume
+- `k8s/` — Kubernetes namespace, Redis, backend, and frontend resources
 
 ## How it works
+
+The project can run with Docker Compose or in the local Kubernetes cluster provided by Docker Desktop. In either setup, Nginx serves the frontend on port 8080 and proxies API requests to Flask; Flask connects to Redis using the service name.
+
+## Run the full stack with Kubernetes
+
+This workflow uses Docker Desktop's local Kubernetes cluster and locally built images. Enable Kubernetes in Docker Desktop and make sure `kubectl config current-context` is `docker-desktop`. Stop the Compose stack first so it does not occupy port 8080:
+
+```bash
+docker compose down
+docker build -t docker-poc-backend:1.0 ./backend
+docker build -t docker-poc-frontend:1.0 ./frontend
+kubectl apply -f k8s/00-namespace.yaml
+kubectl apply -f k8s/10-redis.yaml
+kubectl apply -f k8s/20-backend.yaml
+kubectl apply -f k8s/30-frontend.yaml
+kubectl get pods,services,pvc -n docker-poc
+```
+
+Wait for the pods to become ready, then open http://localhost:8080 and click **Call backend**. The Kubernetes frontend Service exposes port 8080 on the host; Nginx routes `/api/hello` to the backend Service, and Redis uses a PersistentVolumeClaim for its data.
+
+To check rollout progress or view application logs:
+
+```bash
+kubectl rollout status deployment/redis -n docker-poc
+kubectl rollout status deployment/backend -n docker-poc
+kubectl rollout status deployment/frontend -n docker-poc
+kubectl logs -n docker-poc deployment/backend
+```
+
+When finished, remove the Kubernetes resources with `kubectl delete namespace docker-poc`. This deletes the namespace and its resources, including the Redis claim; whether the underlying storage is retained depends on the cluster's storage class.
+
+To return to Compose, start it again with `docker compose up --build`.
+
+## Run the full stack with Docker Compose
 
 1. Open the frontend at `http://localhost:8080`.
 2. The React app requests `/api/hello` from the same origin.

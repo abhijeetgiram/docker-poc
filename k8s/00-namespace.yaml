@@ -1,0 +1,5 @@
+# A namespace is a named "folder" inside the cluster. Deleting it removes everything in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: docker-poc

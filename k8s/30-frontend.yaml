@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: docker-poc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: docker-poc-frontend:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 25m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 64Mi }
+---
+# LoadBalancer = "reachable from outside the cluster". Docker Desktop maps it to localhost.
+# port 8080 = what you open in the browser, targetPort 80 = where nginx listens in the pod.
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: docker-poc
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - port: 8080
+      targetPort: 80
