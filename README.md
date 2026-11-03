@@ -134,6 +134,15 @@ helm upgrade --install docker-poc ./helm/docker-poc \
   --set backend.replicas=3
 ```
 
+The Deployment keeps the requested replica count, so deleting a backend pod only causes Kubernetes to create a replacement. Change the count through Helm to scale the backend; for example, set it to one while preserving the release's other values:
+
+```bash
+helm upgrade docker-poc ./helm/docker-poc \
+  --namespace docker-poc \
+  --reuse-values \
+  --set backend.replicas=1
+```
+
 The chart demonstrates a few Helm template features:
 
 - `templates/_helpers.tpl` defines a backend image helper that combines its image name and tag. Helper files are not rendered as Kubernetes resources on their own.
@@ -271,6 +280,8 @@ docker system prune --volumes # Also remove unused volumes during system prune
 ### Kubernetes
 
 These commands assume Docker Desktop Kubernetes is enabled and the `docker-desktop` context is selected. The resources in this project are in the `docker-poc` namespace.
+
+Docker Desktop offers **kubeadm** (a simple single-node cluster) and **kind** (Kubernetes nodes running as containers, including multi-node setups; requires the containerd image store). For this project, choose **kubeadm** unless you specifically want to experiment with multiple nodes.
 
 ```bash
 kubectl config current-context                         # Show the active Kubernetes context
