@@ -128,6 +128,8 @@ helm upgrade --install docker-poc ./helm/docker-poc \
   --set backend.replicas=3
 ```
 
+For the ingress example, `ingress.enabled` defaults to `false` (frontend Service type `LoadBalancer`). Set `--set ingress.enabled=true` to create a host-agnostic Ingress and use `ClusterIP`; an Ingress controller must be installed in the cluster.
+
 `helm/docker-poc/values-prod.yaml` shows an example of overriding replica counts, image names and tags, pull policies, the backend greeting, and resources. Its registry image names are examples and are not published by this project. Preview the merged production configuration without installing it:
 
 ```bash

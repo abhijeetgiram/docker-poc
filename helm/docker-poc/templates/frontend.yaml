@@ -38,7 +38,11 @@ metadata:
   name: frontend
   namespace: {{ .Release.Namespace }}
 spec:
-  type: LoadBalancer
+  {{- if .Values.ingress.enabled }}
+  type: ClusterIP # Ingress is the front dfoor, so the Service stays internal
+  {{- else }}
+  type: LoadBalancer # No Ingresss, so the Service is reachable from oustide
+  {{- end }}
   selector:
     app: frontend
   ports:
