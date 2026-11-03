@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: "{{ .Values.backend.image }}:{{ .Values.backend.tag }}"
+          image: {{ include "docker-poc.backendImage" . | quote }}
           imagePullPolicy: {{ .Values.backend.pullPolicy }} # Use the image built on this laptop: never download it
           env:
             - name: GREETING
