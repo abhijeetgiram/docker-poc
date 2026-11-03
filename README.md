@@ -129,7 +129,9 @@ npm run dev
 
 The Vite proxy in `vite.config.js` forwards `/api` to `http://localhost:5000`. Make the Flask API available on that host port when using the Vite dev server. The Compose setup does not publish the backend port by default; the simplest way to test the complete stack is to use the Docker Compose instructions above.
 
-## Things to try with Docker and Docker Compose
+## Useful Docker and Kubernetes commands
+
+### Docker Compose
 
 ```bash
 docker --version                               # Show the installed Docker version
@@ -142,6 +144,36 @@ docker compose exec redis redis-cli GET visits # Read the visit counter from Red
 docker compose down                            # Stop and remove containers and network; keep the Redis volume
 docker compose down -v                         # Also remove the Redis volume and its stored data
 ```
+
+Remove unused Docker resources when you need to reclaim disk space:
+
+```bash
+docker container prune # Remove stopped containers
+docker image prune     # Remove dangling images
+docker builder prune   # Remove unused build cache
+docker system prune    # Remove stopped containers, unused networks, dangling images, and build cache
+```
+
+Pruning volumes can delete persisted application data. Only do this when you no longer need it:
+
+```bash
+docker volume prune       # Remove volumes not used by any container
+docker system prune --volumes # Also remove unused volumes during system prune
+```
+
+### Kubernetes
+
+These commands assume Docker Desktop Kubernetes is enabled and the `docker-desktop` context is selected. The resources in this project are in the `docker-poc` namespace.
+
+```bash
+kubectl config current-context                         # Show the active Kubernetes context
+kubectl get pods,services,pvc -n docker-poc             # List project workloads and storage
+kubectl rollout status deployment/frontend -n docker-poc # Wait for the frontend rollout
+kubectl logs -n docker-poc deployment/backend          # View backend logs
+kubectl delete namespace docker-poc                    # Remove all project resources in the namespace
+```
+
+Kubernetes removes namespaced resources when the namespace is deleted. This also deletes the project's PersistentVolumeClaim; whether the underlying storage is retained depends on the cluster's storage class.
 
 ### Common Docker options
 
