@@ -1,12 +1,12 @@
 # Example of how a prod environment would differ. Only changed keys are listed;
 # everything else comes from values.yaml.
-# Preview only: these registry images do not exist.
+# Published by the GitHub Actions workflow when a matching version tag is pushed.
 # helm template docker-poc ./helm/docker-poc -n docker-poc -f ./helm/docker-poc/values-prod.yaml
 
 backend:
   replicas: 3
-  image: mycompany.azurecr.io/docker-poc-backend
-  tag: "1.4.2"
+  image: ghcr.io/abhijeetgiram/docker-poc-backend
+  tag: "v0.1.0"
   pullPolicy: IfNotPresent
   env:
     GREETING: "Hello from Helm Production!"
@@ -16,8 +16,8 @@ backend:
 
 frontend:
   replicas: 2
-  image: mycompany.azurecr.io/docker-poc-frontend
-  tag: "1.4.2"
+  image: ghcr.io/abhijeetgiram/docker-poc-frontend
+  tag: "v0.1.0"
   pullPolicy: IfNotPresent
 
 ingress:

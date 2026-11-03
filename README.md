@@ -19,10 +19,11 @@ A small Docker Compose project for learning how a web frontend, API, and datasto
 - `docker-compose.yml` — service configuration, ports, Redis health check, and data volume
 - `k8s/` — Kubernetes namespace, Redis, backend, and frontend resources
 - `helm/docker-poc/` — Helm chart, default values, and an example production override
+- `.github/workflows/images.yml` — builds app images and publishes them to GitHub Container Registry (GHCR)
 
 ## How it works
 
-The project can run with Docker Compose or in the local Kubernetes cluster provided by Docker Desktop. In either setup, Nginx serves the frontend on port 8080 and proxies API requests to Flask; Flask connects to Redis using the service name.
+Use Docker Compose for local development and Helm to deploy to Kubernetes; the `k8s/` manifests remain available as a manual Kubernetes example. In each setup, Nginx serves the frontend and proxies API requests to Flask; Flask connects to Redis using the service name.
 
 ## Run the full stack with Docker Compose
 
@@ -51,24 +52,29 @@ The request flow is:
 
 Compose waits for Redis's health check before starting the backend. The frontend is served on port 80 inside its container and published as port 8080 on the host. The backend listens on port 5000 inside its container and is reachable by other Compose services, but is not published on the host by default. This lets multiple backend replicas run without competing for one host port. Redis has no host-published port.
 
-## Build and publish the frontend image to Docker Hub
+## Manually publish images to Docker Hub
 
-Replace `<username>` in the commands below with your Docker Hub username before running them. Build the image locally before tagging it for your Docker Hub repository, then push the tagged image:
+Docker Hub is a public container registry. Both application images were manually pushed there successfully and can be found under your Docker Hub account's repositories. To repeat the process, replace `<username>` below with your Docker Hub username, then build, tag, and push each image:
 
 ```bash
 docker login
+docker build -t docker-poc-backend:1.0 ./backend
 docker build -t docker-poc-frontend:1.0 ./frontend
+docker tag docker-poc-backend:1.0 <username>/docker-poc-backend:1.0
 docker tag docker-poc-frontend:1.0 <username>/docker-poc-frontend:1.0
+docker push <username>/docker-poc-backend:1.0
 docker push <username>/docker-poc-frontend:1.0
 ```
 
-To confirm the published image can be pulled:
+To verify either image can be pulled:
 
 ```bash
+docker pull <username>/docker-poc-backend:1.0
 docker pull <username>/docker-poc-frontend:1.0
 ```
 
-The local image must exist before `docker tag` can tag it, and the repository-qualified tag must exist before `docker push` can upload it.
+Check your Docker Hub account to see the published images. You can also pull them from any machine with Docker installed, or use them in a Kubernetes cluster.
+The local image must exist before `docker tag` can tag it, and the repository-qualified tag must exist before `docker push` can upload it. This manual Docker Hub workflow is separate from the GitHub Actions workflow below, which publishes to GHCR.
 
 ## Run the full stack with Kubernetes
 
@@ -138,7 +144,7 @@ Resource labels are currently written inline in the templates; there is not yet 
 
 `ingress.enabled` defaults to `false`. Setting `--set ingress.enabled=true` changes the frontend Service to `ClusterIP`; it does not create an Ingress resource, so the frontend will only be reachable through a separately configured ingress or another cluster access method.
 
-`helm/docker-poc/values-prod.yaml` shows an example of overriding replica counts, image names and tags, pull policies, the backend environment, and resources. Its registry image names are examples and are not published by this project. Preview the merged production configuration without installing it:
+`helm/docker-poc/values-prod.yaml` shows an example of overriding replica counts, image names and tags, pull policies, the backend environment, and resources. It uses the GHCR images published by the workflow below. Preview the merged production configuration without installing it:
 
 ```bash
 helm lint ./helm/docker-poc -f ./helm/docker-poc/values-prod.yaml
@@ -156,6 +162,33 @@ helm uninstall docker-poc -n docker-poc
 Whether the underlying storage is retained after the claim is deleted depends on the cluster's storage class.
 
 Do not install the raw Kubernetes manifests and the Helm release together in the same namespace: they create resources with the same names.
+
+## Build and publish images with GitHub Actions
+
+GitHub Container Registry (GHCR) is GitHub's container image registry, integrated with GitHub Packages. Like Docker Hub, it stores and distributes container images; the difference here is which registry host and publishing workflow are used. The workflow builds both images on pull requests targeting `master`. On pushes to `master` and version tags matching `v*`, it also publishes them to GHCR. Published images receive a branch or version tag and a commit-SHA tag. For example, pushing `v0.1.0` publishes:
+
+- `ghcr.io/abhijeetgiram/docker-poc-backend:v0.1.0`
+- `ghcr.io/abhijeetgiram/docker-poc-frontend:v0.1.0`
+
+To view GHCR images, open the repository on GitHub and select its **Packages** section, or visit your GitHub profile and open **Packages**. GHCR is separate from Docker Hub, so images pushed manually to Docker Hub do not appear there. Packages will appear in GHCR after the workflow runs on a push to `master` or a `v*` tag and successfully publishes them. GitHub Actions runs on PRs too, but those runs only build and do not publish.
+
+The workflow uses the automatically provided `GITHUB_TOKEN` with `packages: write`; no registry secret is needed. If repository or organization policy requires it, allow Actions to create packages. GHCR packages may be private by default. Make them public for unauthenticated cluster pulls, or configure Kubernetes image-pull credentials for private packages.
+
+Push a version tag to build and publish its images:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+GitHub Actions only builds and publishes; it does not deploy to a cluster. Deploy a published version to Kubernetes with Helm after ensuring the cluster can pull the GHCR packages:
+
+```bash
+helm upgrade --install docker-poc ./helm/docker-poc \
+  --namespace docker-poc \
+  --create-namespace \
+  -f ./helm/docker-poc/values-prod.yaml
+```
 
 ## Run only the backend container
 
@@ -275,8 +308,9 @@ These are project milestones, not Docker image tags or formal releases. Keep the
 | Milestone | Status | Improvements |
 |---|---|---|
 | v0.1 — Containerized baseline | Complete | Static HTML frontend served by Nginx, Flask API, Redis counter, Compose networking, and persistent Redis volume. |
-| v0.2 — React frontend | Current | Replaced the static page with React and Vite; added a multi-stage frontend image build, Nginx API proxy and SPA fallback, example security headers, and a Redis health check. |
+| v0.2 — React frontend | Complete | Replaced the static page with React and Vite; added a multi-stage frontend image build, Nginx API proxy and SPA fallback, example security headers, and a Redis health check. |
 | v0.3 — API reliability and tests | Planned | Add API/Redis error handling with consistent HTTP responses, health/readiness endpoints, and automated tests. |
-| v0.4 — Deployment workflow | Planned | Add a CI build/test workflow, image tagging, and documented deployment configuration. |
+| v0.4 — Image build and publish | Current | Build frontend and backend images in GitHub Actions; publish version- and commit-SHA-tagged images to GHCR and document Helm deployment. |
+| v0.5 — API reliability and tests | Planned | Add API/Redis error handling with consistent HTTP responses, health/readiness endpoints, and automated tests. |
 
 When a planned milestone is implemented, update its status and improvements here, then add the next planned milestone.
