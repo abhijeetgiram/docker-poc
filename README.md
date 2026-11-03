@@ -41,6 +41,26 @@ Open:
 
 Stop the foreground stack with `Ctrl+C`. To start it in the background, use `docker compose up --build -d`.
 
+## Run only the backend container
+
+Build the backend image from its directory, then start a single container:
+
+```bash
+cd backend
+docker build -t hello-api .
+docker run --rm -p 5050:5000 hello-api
+```
+
+Visit http://localhost:5050/api/hello to call the API. This runs only the backend; no database is connected, so the response's `visits` field will say `"no database connected"`. Stop the container with `Ctrl+C`.
+
+You can change the greeting without changing the code by stopping the container and running it again with a `GREETING` environment variable:
+
+```bash
+docker run --rm -p 5050:5000 -e GREETING="Hi John" hello-api
+```
+
+The response's `message` field will now be `"Hi John"`. The `--rm` option removes the container when it stops; the built `hello-api` image remains available.
+
 ## Run the frontend in Vite development mode
 
 ```bash
