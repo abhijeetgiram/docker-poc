@@ -63,6 +63,25 @@ To return to Compose, start it again with `docker compose up --build`.
 
 Compose waits for Redis's health check before starting the backend. The frontend is served on port 80 inside its container and published as port 8080 on the host. The backend listens on port 5000 inside its container and is reachable by other Compose services, but is not published on the host by default. This lets multiple backend replicas run without competing for one host port. Redis has no host-published port.
 
+## Build and publish the frontend image to Docker Hub
+
+Replace `<username>` in the commands below with your Docker Hub username before running them. Build the image locally before tagging it for your Docker Hub repository, then push the tagged image:
+
+```bash
+docker login
+docker build -t docker-poc-frontend:1.0 ./frontend
+docker tag docker-poc-frontend:1.0 <username>/docker-poc-frontend:1.0
+docker push <username>/docker-poc-frontend:1.0
+```
+
+To confirm the published image can be pulled:
+
+```bash
+docker pull <username>/docker-poc-frontend:1.0
+```
+
+The local image must exist before `docker tag` can tag it, and the repository-qualified tag must exist before `docker push` can upload it.
+
 ## Run the full stack
 
 ```bash
