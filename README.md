@@ -23,6 +23,52 @@ A small Docker Compose project for learning how a web frontend, API, and datasto
 
 The project can run with Docker Compose or in the local Kubernetes cluster provided by Docker Desktop. In either setup, Nginx serves the frontend on port 8080 and proxies API requests to Flask; Flask connects to Redis using the service name.
 
+## Run the full stack with Docker Compose
+
+Start the services:
+
+```bash
+docker compose up --build
+```
+
+Open:
+
+- Frontend: http://localhost:8080
+- Backend API (through the frontend proxy): http://localhost:8080/api/hello
+
+Stop the foreground stack with `Ctrl+C`. To start it in the background, use `docker compose up --build -d`.
+
+To call the backend directly at `http://localhost:5050/api/hello`, uncomment the backend `ports` mapping in `docker-compose.yml` and restart Compose. A fixed host port supports only one backend replica; leave the mapping commented out when scaling.
+
+The request flow is:
+
+1. Open the frontend at `http://localhost:8080`.
+2. The React app requests `/api/hello` from the same origin.
+3. Nginx forwards `/api/` requests to the `backend` service on the Compose network.
+4. Flask increments the `visits` key in Redis and returns JSON, including the backend container name.
+5. Redis stores its data in the `redis-data` volume so the counter survives container removal.
+
+Compose waits for Redis's health check before starting the backend. The frontend is served on port 80 inside its container and published as port 8080 on the host. The backend listens on port 5000 inside its container and is reachable by other Compose services, but is not published on the host by default. This lets multiple backend replicas run without competing for one host port. Redis has no host-published port.
+
+## Build and publish the frontend image to Docker Hub
+
+Replace `<username>` in the commands below with your Docker Hub username before running them. Build the image locally before tagging it for your Docker Hub repository, then push the tagged image:
+
+```bash
+docker login
+docker build -t docker-poc-frontend:1.0 ./frontend
+docker tag docker-poc-frontend:1.0 <username>/docker-poc-frontend:1.0
+docker push <username>/docker-poc-frontend:1.0
+```
+
+To confirm the published image can be pulled:
+
+```bash
+docker pull <username>/docker-poc-frontend:1.0
+```
+
+The local image must exist before `docker tag` can tag it, and the repository-qualified tag must exist before `docker push` can upload it.
+
 ## Run the full stack with Kubernetes
 
 This workflow uses Docker Desktop's local Kubernetes cluster and locally built images. Enable Kubernetes in Docker Desktop and make sure `kubectl config current-context` is `docker-desktop`. Stop the Compose stack first so it does not occupy port 8080:
@@ -52,50 +98,6 @@ kubectl logs -n docker-poc deployment/backend
 When finished, remove the Kubernetes resources with `kubectl delete namespace docker-poc`. This deletes the namespace and its resources, including the Redis claim; whether the underlying storage is retained depends on the cluster's storage class.
 
 To return to Compose, start it again with `docker compose up --build`.
-
-## Run the full stack with Docker Compose
-
-1. Open the frontend at `http://localhost:8080`.
-2. The React app requests `/api/hello` from the same origin.
-3. Nginx forwards `/api/` requests to the `backend` service on the Compose network.
-4. Flask increments the `visits` key in Redis and returns JSON, including the backend container name.
-5. Redis stores its data in the `redis-data` volume so the counter survives container removal.
-
-Compose waits for Redis's health check before starting the backend. The frontend is served on port 80 inside its container and published as port 8080 on the host. The backend listens on port 5000 inside its container and is reachable by other Compose services, but is not published on the host by default. This lets multiple backend replicas run without competing for one host port. Redis has no host-published port.
-
-## Build and publish the frontend image to Docker Hub
-
-Replace `<username>` in the commands below with your Docker Hub username before running them. Build the image locally before tagging it for your Docker Hub repository, then push the tagged image:
-
-```bash
-docker login
-docker build -t docker-poc-frontend:1.0 ./frontend
-docker tag docker-poc-frontend:1.0 <username>/docker-poc-frontend:1.0
-docker push <username>/docker-poc-frontend:1.0
-```
-
-To confirm the published image can be pulled:
-
-```bash
-docker pull <username>/docker-poc-frontend:1.0
-```
-
-The local image must exist before `docker tag` can tag it, and the repository-qualified tag must exist before `docker push` can upload it.
-
-## Run the full stack
-
-```bash
-docker compose up --build
-```
-
-Open:
-
-- Frontend: http://localhost:8080
-- Backend API (through the frontend proxy): http://localhost:8080/api/hello
-
-Stop the foreground stack with `Ctrl+C`. To start it in the background, use `docker compose up --build -d`.
-
-To call the backend directly at `http://localhost:5050/api/hello`, uncomment the backend `ports` mapping in `docker-compose.yml` and restart Compose. A fixed host port supports only one backend replica; leave the mapping commented out when scaling.
 
 ## Run only the backend container
 
