@@ -122,6 +122,20 @@ docker compose down                            # Stop and remove containers and 
 docker compose down -v                         # Also remove the Redis volume and its stored data
 ```
 
+### Common Docker options
+
+Short options (one hyphen) are often abbreviations for long options (two hyphens). Their meaning depends on the command:
+
+| Option | Meaning | Example |
+|---|---|---|
+| `-t` | With `docker build`, set the image name and tag. With `docker run`, allocate a terminal (TTY). | `docker build -t hello-api .` |
+| `--rm` | With `docker run`, automatically remove the container after it stops. It does not remove the image. | `docker run --rm hello-api` |
+| `-f` | Specify a file with `docker compose` (for example, an alternate Compose file); with `docker compose logs`, follow the log output. | `docker compose -f docker-compose.yml up` |
+| `-d` | Run containers in the background (detached mode). | `docker compose up -d` |
+| `-v` | With `docker run`, mount a volume or host path into the container. With `docker compose down`, also remove named volumes and their data. | `docker run -v my-data:/data hello-api` |
+
+Check `docker <command> --help` or `docker compose <command> --help` for the options supported by a specific command. For example, `-f` and `-v` do not have one universal meaning across Docker commands.
+
 ### Try scaling the backend
 
 The backend is not published on a fixed host port, so Compose can start multiple replicas. The frontend proxy can still reach the backend using the Compose service name. Run:
