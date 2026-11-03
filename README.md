@@ -165,7 +165,7 @@ Do not install the raw Kubernetes manifests and the Helm release together in the
 
 ## Build and publish images with GitHub Actions
 
-GitHub Container Registry (GHCR) is GitHub's container image registry, integrated with GitHub Packages. Like Docker Hub, it stores and distributes container images; the difference here is which registry host and publishing workflow are used. The workflow builds both images on pull requests targeting `master`. On pushes to `master` and version tags matching `v*`, it also publishes them to GHCR. Published images receive a branch or version tag and a commit-SHA tag. For example, pushing `v0.1.0` publishes:
+GitHub Container Registry (GHCR) is GitHub's container image registry, integrated with GitHub Packages. Like Docker Hub, it stores and distributes container images; the difference here is which registry host and publishing workflow are used. The workflow builds both images on pull requests targeting `master`. On pushes to `master` and version tags matching `v*`, it also publishes them to GHCR. Published images receive a branch or version tag and a commit-SHA tag; pushes to the default branch also update the `latest` tag. Builds include both `linux/amd64` and `linux/arm64` platforms, so they can be pulled on common Intel/AMD and Apple Silicon machines. For example, pushing `v0.1.0` publishes:
 
 - `ghcr.io/abhijeetgiram/docker-poc-backend:v0.1.0`
 - `ghcr.io/abhijeetgiram/docker-poc-frontend:v0.1.0`
@@ -174,7 +174,23 @@ To view GHCR images, open the repository on GitHub and select its **Packages** s
 
 The workflow uses the automatically provided `GITHUB_TOKEN` with `packages: write`; no registry secret is needed. If repository or organization policy requires it, allow Actions to create packages. GHCR packages may be private by default. Make them public for unauthenticated cluster pulls, or configure Kubernetes image-pull credentials for private packages.
 
-Push a version tag to build and publish its images:
+After a successful publishing run, pull the version-tagged images into Docker Desktop with Docker CLI:
+
+```bash
+docker pull ghcr.io/abhijeetgiram/docker-poc-backend:v0.1.0
+docker pull ghcr.io/abhijeetgiram/docker-poc-frontend:v0.1.0
+```
+
+Pulled images appear in Docker Desktop's **Images** view. For private packages, authenticate first with `docker login ghcr.io` using a GitHub personal access token that has `read:packages`; public packages can be pulled without logging in.
+
+You do not need to create a Git tag for everyday pushes to `master`: after the workflow succeeds, pull the moving `latest` tag:
+
+```bash
+docker pull ghcr.io/abhijeetgiram/docker-poc-backend:latest
+docker pull ghcr.io/abhijeetgiram/docker-poc-frontend:latest
+```
+
+For a fixed version such as `v0.1.0`, create and push a Git tag. The version-tagged images above exist only after that tag is pushed and its Actions run succeeds:
 
 ```bash
 git tag v0.1.0
